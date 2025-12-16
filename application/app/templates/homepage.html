@@ -1,0 +1,38 @@
+{% extends "main.html" %}
+{% block content %}
+
+
+
+<h1>Homepage</h1>
+<br>
+<h2>Introduction</h2>
+<p>
+    This project aims to classify tweets as offensive or not offensive using various machine learning models.
+    The models used in this project include Logistic Regression, Decision Trees, Random Forest, and
+    Gradient Boosting Classifier.
+</p>
+<br>
+
+<p>
+    To understand more about the project and how it was planned and broken down, visit the <a
+        href={{url_for("project_explained")}}>Project Explained</a> tab on the navigation bar
+    The twitter classification program was created by myself to allow for other users to test if a tweet is
+    considered as offensive or not.
+</p>
+
+<p>
+    If you wish to test the models against a custom tweet, click on the <a href={{url_for('classify_tweet')}}>Classify
+        Tweet </a>tab on the navigation bar.
+    <br>
+</p>
+
+
+<br>
+<div class="text-center">
+    <img src="static/images/tweet.png" alt="" class="img-fluid" id="sample of an offensive tweet">
+</div>
+
+<br>
+<p class="text-center"> Above are examples of some sample tweets that can be considered as offensive</p>
+
+{% endblock %}

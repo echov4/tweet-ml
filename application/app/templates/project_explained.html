@@ -1,0 +1,832 @@
+{% extends "main.html" %}
+{% block content %}
+
+<h1>Explaining the project</h1>
+
+<br>
+
+<h2> Project Briefly Explained</h2>
+<p>
+  The overall goal of the project was to classify a tweet in the following categories: if it is offensive or not, and if
+  it is offensive, if it is a targeted insult or an un-targeted insult. Finally, if it is a targeted insult, is it
+  targeted
+  to a group, individual or other. To do this we would need to use machine learning algorithms. We used supervised
+  machine learning and built numerous models and employed the use of the one with the highest accuracy. The dataset for
+  training and testing
+  was publicly available online at <a href="https://github.com/joeykay9/offenseval" target="_blank"> joeykay9's
+    GitHub</a> page. Using this data that is already labelled we can build models. Then using this model, we can
+  classify a new tweet.
+</p>
+
+<h2>Steps for Classification</h2>
+
+<h3>Step 1: Load the dataset in and Organise:</h3>
+<p>
+  The first step was to load in the data in using the pandas library.
+  This allowed us to manage the different files easier as they can be translated into a DataFrame.
+  <br><br>
+  The data was spanned across multiple files and they were in different formats such as (.csv) and (.tsv). The files are
+  stated below and their description
+</p>
+
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th>File name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>olid-annotation.txt</td>
+      <td>Describing the files and the data in it</td>
+    </tr>
+    <tr>
+      <td>olid-training-v1.0.tsv</td>
+      <td>Tab separated training data. Contains the headings [tweet, subtask_A, subtask_B, subtask_C]</td>
+    </tr>
+    <tr>
+      <td>testset-levela.csv</td>
+      <td>Comma separated test data for taskA. Contains the headings [id, tweet]</td>
+    </tr>
+    <tr>
+      <td>testset-levelb.csv</td>
+      <td>Comma separated test data for taskB. Contains the headings [id, tweet]</td>
+    </tr>
+    <tr>
+      <td>testset-levelc.csv</td>
+      <td>Comma separated test data for taskC. Contains the headings [id, tweet]</td>
+    </tr>
+    <tr>
+      <td>labels-levela.csv</td>
+      <td>Comma separated test data for taskA. Contains no headings but contains [id, tweet]</td>
+    </tr>
+    <tr>
+      <td>labels-levelb.csv</td>
+      <td>Comma separated test data for taskA. Contains no headings but contains [id, tweet]</td>
+    </tr>
+    <tr>
+      <td>labels-levelc.csv</td>
+      <td>Comma separated test data for taskC. Contains no headings but contains [id, tweet]</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Once we loaded in the training and datasets in using pandas the next step was to get rid of the ID columns in the
+  training and testing data. This column is not required for the classifier.
+  <br><br>
+  Next we will combine the label files with the test files which allows for ease of use and the files are easier to
+  manage.
+
+  <br><br>
+  Lastly we renamed the columns where "subtask_a", "subtask_b", and "subtask_c" are renamed to "taskA", "taskB" and
+  "taskC" respectively.
+
+  <br><br>
+  This process will return 4 distinct pandas DataFrames which we can now use:
+</p>
+
+<ol>
+  <li>training_data</li>
+  <p>Contains [tweet, taskA, taskB, taskC]</p>
+  <li>testA_file</li>
+  <p>Contains [tweet, taskA]</p>
+  <li>testB_file</li>
+  <p>Contains [tweet, taskB]</p>
+  <li>testC_file</li>
+  <p>Contains [tweet, taskC]</p>
+</ol>
+
+<br> <br>
+
+<h3>Step 2: Exploratory Data Analysis (EDA) on training data:</h3>
+<p>
+  This step was done to get some information regarding the <b>training data</b> and to see if there is anything we can
+  spot or see distinct patterns. Using EDA we checked for <b>number of entries,
+    taskA split, taskB split, taskC split, any missing values, total word count, word distribution on each class</b>
+</p>
+
+<br>
+
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th colspan="3" class="text-center">Total Entries</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Total entries</th>
+      <td class="text-center">{{ total_entries }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th colspan="3" class="text-center">Class Split</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <th colspan="2" class="table-info text-center"> Task A Split</th>
+
+    {% for key, value in taskA_split.items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>{{ value }}</td>
+    </tr>
+    {% endfor %}
+
+    <th colspan="2" class="table-info text-center"> Task B Split</th>
+    {% for key, value in taskB_split.items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>{{ value }}</td>
+    </tr>
+    {% endfor %}
+    <th colspan="2" class="table-info text-center"> Task C Split</th>
+    {% for key, value in taskC_split.items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>{{ value }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<br>
+
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th colspan="2" class="text-center">Average Word Distribution</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <th colspan="2" class="table-info text-center"> Task A (Offensive/Not Offensive) Word Distribution</th>
+    <tr>
+      <td>Offensive Word Distribution</td>
+      <td>{{ '%0.2f'| format(off_dist) }}</td>
+    </tr>
+    <tr>
+      <td>Not Offensive Word Distribution</td>
+      <td>{{ '%0.2f'| format(not_dist) }}</td>
+    </tr>
+    <th colspan="2" class="table-info text-center"> Task B (Targeted/Untargeted) Word Distribution</th>
+    <tr>
+      <td>Targeted Word Distribution</td>
+      <td>{{ '%0.2f'| format(tin_dist) }}</td>
+    </tr>
+    <tr>
+      <td>Untargeted Word Distribution</td>
+      <td>{{ '%0.2f'| format(unt_dist) }}</td>
+    </tr>
+    <th colspan="2" class="table-info text-center"> Task C (Individual/Group/Other) Word Distribution</th>
+
+    <tr>
+      <td>Individual Word Distribution</td>
+      <td>{{ '%0.2f'| format(ind_dist) }}</td>
+    </tr>
+    <tr>
+      <td>Group Word Distribution</td>
+      <td>{{ '%0.2f'| format(grp_dist) }}</td>
+    </tr>
+    <tr>
+      <td>Targeted Word Distribution</td>
+      <td>{{ '%0.2f'| format(oth_dist) }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th colspan="3" class="text-center">Missing Values</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for key, value in missing_values.items() %}
+    <tr>
+      <th>{{ key }}</th>
+      <td>{{ value }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+
+
+
+
+<p>
+  We can see from the above data certain interesting patterns regarding the training data. For example, Offensive tweets
+  use more words than non-offensive tweets and so on.
+  <br><br>
+  It is also worth noting that there are missing values in the taskB and taskC columns. These will be dropped before the
+  model is created. The reason for this is due to the classification tasks.
+</p>
+
+
+
+
+<br> <br>
+<h3>Step 3: Clean up the tweets</h3>
+<p>
+  In this step we cleaned the data up. We used the "nltk" python library and regular expressions. This consisted of the
+  following sub-steps:
+</p>
+
+<ol>
+  <li>Pre-process</li>
+  <p>We did a number of sub-steps within pre-processing to ensure that the tweets are understandable by the computer:
+  </p>
+
+  <ul>
+    <li>Get rid of "@user"</li>
+    <p>This is because the "@user" is a generic term used to describe another user on twitter. I assume that this
+      approach was taken to ensure anonymity of the author and subject of the tweet </p>
+    <li>Get rid of "URL"</li>
+    <p>This is because the "URL" has already been subbed in for an actual URL. Therefore we can just remove this as it
+      does not add any information to the classifier</p>
+    <li>Get rid of numbers</li>
+    <p>Numbers aren't required by the classifier to make a prediction. Also, numbers can be arbitrary. It can be from a
+      timestamp or from a quantity. Therefore we can remove this</p>
+    <li>Get rid of punctuation</li>
+    <p>Punctuation is not required as it adds no additional information when the computer tries to understand the text.
+      Thus, this can be removed</p>
+    <li>Get rid of emojis</li>
+    <p>Emojis add no context to the tweet and therefore can also be removed.</p>
+    <li>Get rid of any whitespace/tabs</li>
+    <p>Tabs and whitespace do not add any context or any relevance to a tweet being offensive or not. It can
+      subsequently be removed.</p>
+    <li>Make everything lowercase</li>
+    <p>By making everything lowercase we can normalise the string and process can be smoother. For example the word
+      "FUCK" is equal to "fuck". However this may affect nouns or organisations that are capital, for example "PETA"
+      stands for "People for the Ethical Treatment of Animals" which is an organisation. If we make it lower case,
+      "peta" is not equal to "PETA". Here there is the trade-off we have to consider</p>
+  </ul>
+
+  <li>Remove stopwords</li>
+  <p>Stopwords are words that are common in the english language but are unimportant. For example, "the", "is", "a",
+    "an", and etc. These words can be removed. The following stopwords are considered and are removed:</p>
+  <p> <i>{{stop_words}}</i> </p>
+  <li>Get POS</li>
+
+  <p>POS (Part of Speech) is where the computer adds a tag to the word depending on the context and the particular word.
+    For example, the word "fishing" is a verb therefore we tag it as such.</p>
+  <li>Lemmatise</li>
+
+  <p>Lemmatising a word allows for the computer to convert it into its base form. For example, "running", "ran" and
+    "run" are all words but have the same meaning. Therefore we can get to its base form "run". This can reduce the
+    processing time as well optimizing the words that appear. There is the option to use a stemmer, but in this case it
+    was more appropriate to use a lemmatiser.</p>
+</ol>
+
+
+<p> The time taken for cleaning of each file has been displayed below:<br></p>
+
+<div class="text-center">
+  <img src="static/images/clean_data_time.png" alt="" class="img-fluid">
+</div>
+
+<br> <br>
+<h3>Step 4: For each task vectorise the data and build, run, evaluate, and save the models </h3>
+<p>
+  In this step vectorised the training data, split it into training and testing, then build the model and run it on the
+  data.
+</p>
+
+<ol>
+  <li>Vectorise the Data</li>
+  <p>In this step we vectorise the data using TF-IDF (Term Frequency - Inverse Document Frequency). There are other
+    options, but we will be employing the use of TF-IDF. The convenient thing about using TF-IDF is that it can work on
+    un-tokenized data. <br> The equation below demonstrates how the TF-IDF algorithm works:</p>
+
+  <div class="text-center">
+    <img src="static/images/tf-idf.png" alt="" class="img-fluid" id="tfidf">
+  </div>
+
+  <li>Split into training and testing data</li>
+  <p> The data has to be split into training and testing data so that we can build the model and test it and evaluate
+    its metrics. It is convenient that the data is already split into training and testing.</p>
+  <p><i>NOTE: we dropped any "nan" values in taskB and taskC as they were not required for building the model. For
+      example if a tweet was NOT OFFENSIVE, this meant that it cannot be TARGETED at a GROUP, INDIVIDUAL or OTHER,
+      therefore a NULL value was placed there, but when loading the data in, it was converted to "nan" by the pandas
+      library.</i></p>
+  <li>Build and Evaluate the Model</li>
+  <p>Next step was to build multiple models using the "sklearn" library, we built multiple models and evaluated them
+    based on accuracy, precision and the confusion matrix. The following models were created and evaluated:</p>
+
+  <ul>
+    <li>Dummy Classifier</li>
+    <li>Naive Bayes</li>
+    <li>SVC</li>
+    <li>Logistic Regression</li>
+    <li>Random Forest</li>
+    <li>Decision Tree</li>
+    <li>Gradient Boosting</li>
+    <li>Voted Perceptron</li>
+    <li>Convolution Neural Network </li>
+  </ul>
+  <br>
+  <p> To set a benchmark for the models, we used the Dummy classifier. If the models accuracy surpasses the Dummy
+    classifier, it can be considered a success, and if it doesn't, it is considered a fail. </p>
+  <p> To optimise the models, we did use GridSearchCV to search for the best paramaters (this code has been commented
+    and can be run by uncommenting it), We only only selected the parameters that made a significant difference in the
+    accuracy results</p>
+
+  <li>Save the best model and the tokeniser to file for re-use</li>
+  <p>Based on the best accuracy score, we stored that model into file using the pickle library. We also stored the
+    tokeniser, which allowed for the model to be loaded in and then predicted against new data.</p>
+  <p>To see the classification report on each of the models used for each of the task, click the corresponding link
+    below</p>
+  <p>NOTE: The dark headings are the models that were used for the <a href={{url_for("classify_tweet")}}>Classify
+      tweet</a> page and the Yellow headings are the dummy classifiers</p>
+</ol>
+
+
+<h4> Task A: </h4>
+
+<div class="accordion" id="accordion1">
+
+  <div class="card">
+    <div class="card-header bg-warning" id="heading0">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse0"
+          aria-expanded="false" aria-controls="collapse0">
+          Dummy Classifier
+        </button>
+      </h5>
+    </div>
+    <div id="collapse0" class="collapse" aria-labelledby="heading0" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_dummy.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading1">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse1"
+          aria-expanded="false" aria-controls="collapse1">
+          Naive Bayes
+        </button>
+      </h5>
+    </div>
+    <div id="collapse1" class="collapse" aria-labelledby="heading1" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_naive.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading2">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse2"
+          aria-expanded="false" aria-controls="collapse2">
+          SVC
+        </button>
+      </h5>
+    </div>
+    <div id="collapse2" class="collapse" aria-labelledby="heading2" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_svc.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading3">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse3"
+          aria-expanded="false" aria-controls="collapse3">
+          Logistic Regression
+        </button>
+      </h5>
+    </div>
+    <div id="collapse3" class="collapse" aria-labelledby="heading3" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_lr.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header bg-dark" id="heading4">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse4"
+          aria-expanded="false" aria-controls="collapse4">
+          Random Forest
+        </button>
+      </h5>
+    </div>
+    <div id="collapse4" class="collapse" aria-labelledby="heading4" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_random_forest.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading5">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse5"
+          aria-expanded="false" aria-controls="collapse5">
+          Decision Tree
+        </button>
+      </h5>
+    </div>
+    <div id="collapse5" class="collapse" aria-labelledby="heading5" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_dt.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading6">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse6"
+          aria-expanded="false" aria-controls="collapse6">
+          Gradient Boosting
+        </button>
+      </h5>
+    </div>
+    <div id="collapse6" class="collapse" aria-labelledby="heading6" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_gradient.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading7">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse7"
+          aria-expanded="false" aria-controls="collapse7">
+          Voted Perceptron
+        </button>
+      </h5>
+    </div>
+    <div id="collapse7" class="collapse" aria-labelledby="heading7" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_vp.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading8">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse8"
+          aria-expanded="false" aria-controls="collapse8">
+          Convolution Neural Network
+        </button>
+      </h5>
+    </div>
+    <div id="collapse8" class="collapse" aria-labelledby="heading8" data-parent="#accordion1">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taska_metrics/taska_cnn.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<br><br><br>
+
+<h4> Task B: </h4>
+
+<div class="accordion" id="accordion2">
+
+  <div class="card">
+    <div class="card-header bg-warning" id="heading9">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse9"
+          aria-expanded="false" aria-controls="collapse9">
+          Dummy Classifier
+        </button>
+      </h5>
+    </div>
+    <div id="collapse9" class="collapse" aria-labelledby="heading9" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_dummy.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading10">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse10"
+          aria-expanded="false" aria-controls="collapse10">
+          Naive Bayes
+        </button>
+      </h5>
+    </div>
+    <div id="collapse10" class="collapse" aria-labelledby="heading10" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_naive.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading11">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse11"
+          aria-expanded="false" aria-controls="collapse11">
+          SVC
+        </button>
+      </h5>
+    </div>
+    <div id="collapse11" class="collapse" aria-labelledby="heading11" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_svc.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading12">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse12"
+          aria-expanded="false" aria-controls="collapse12">
+          Logistic Regression
+        </button>
+      </h5>
+    </div>
+    <div id="collapse12" class="collapse" aria-labelledby="heading12" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_lr.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header bg-dark" id="heading13">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse13"
+          aria-expanded="false" aria-controls="collapse13">
+          Random Forest
+        </button>
+      </h5>
+    </div>
+    <div id="collapse13" class="collapse" aria-labelledby="heading13" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_random_forest.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading14">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse14"
+          aria-expanded="false" aria-controls="collapse14">
+          Decision Tree
+        </button>
+      </h5>
+    </div>
+    <div id="collapse14" class="collapse" aria-labelledby="heading14" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_dt.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading15">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse15"
+          aria-expanded="false" aria-controls="collapse15">
+          Gradient Boosting
+        </button>
+      </h5>
+    </div>
+    <div id="collapse15" class="collapse" aria-labelledby="heading15" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_gradient.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading16">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse16"
+          aria-expanded="false" aria-controls="collapse16">
+          Voted Perceptron
+        </button>
+      </h5>
+    </div>
+    <div id="collapse16" class="collapse" aria-labelledby="heading16" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_vp.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading17">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse17"
+          aria-expanded="false" aria-controls="collapse17">
+          Convolution Neural Network
+        </button>
+      </h5>
+    </div>
+    <div id="collapse17" class="collapse" aria-labelledby="heading17" data-parent="#accordion2">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskb_metrics/taskb_cnn.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+
+<br><br><br>
+
+<h4> Task C: </h4>
+
+<div class="accordion" id="accordion3">
+
+  <div class="card">
+    <div class="card-header bg-warning" id="heading18">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse18"
+          aria-expanded="false" aria-controls="collapse18">
+          Dummy Classifier
+        </button>
+      </h5>
+    </div>
+    <div id="collapse18" class="collapse" aria-labelledby="heading17" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_dummy.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading19">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse19"
+          aria-expanded="false" aria-controls="collapse19">
+          Naive Bayes
+        </button>
+      </h5>
+    </div>
+    <div id="collapse19" class="collapse" aria-labelledby="heading19" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_naive.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading20">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse20"
+          aria-expanded="false" aria-controls="collapse20">
+          SVC
+        </button>
+      </h5>
+    </div>
+    <div id="collapse20" class="collapse" aria-labelledby="heading20" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_svc.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading21">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse21"
+          aria-expanded="false" aria-controls="collapse21">
+          Logistic Regression
+        </button>
+      </h5>
+    </div>
+    <div id="collapse21" class="collapse" aria-labelledby="heading20" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_lr.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header bg-dark" id="heading22">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse22"
+          aria-expanded="false" aria-controls="collapse22">
+          Random Forest
+        </button>
+      </h5>
+    </div>
+    <div id="collapse22" class="collapse" aria-labelledby="heading22" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_random_forest.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading23">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse23"
+          aria-expanded="false" aria-controls="collapse23">
+          Decision Tree
+        </button>
+      </h5>
+    </div>
+    <div id="collapse23" class="collapse" aria-labelledby="heading23" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_dt.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading24">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse24"
+          aria-expanded="false" aria-controls="collapse24">
+          Gradient Boosting
+        </button>
+      </h5>
+    </div>
+    <div id="collapse24" class="collapse" aria-labelledby="heading24" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_gradient.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header" id="heading25">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse25"
+          aria-expanded="false" aria-controls="collapse25">
+          Voted Perceptron
+        </button>
+      </h5>
+    </div>
+    <div id="collapse25" class="collapse" aria-labelledby="heading25" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_vp.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="heading26">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse26"
+          aria-expanded="false" aria-controls="collapse26">
+          Convolution Neural Network
+        </button>
+      </h5>
+    </div>
+    <div id="collapse26" class="collapse" aria-labelledby="heading24" data-parent="#accordion3">
+      <div class="card-body">
+        <img src="static/images/model_metrics/taskc_metrics/taskc_cnn.png" alt="" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+
+
+
+{% endblock %}

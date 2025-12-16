@@ -1,0 +1,150 @@
+{% extends "main.html" %}
+{% block content %}
+
+<h1>Results</h1>
+<br>
+
+{% if taskA_pred == "NOT"%}
+<h3> The tweet inputted is <b>NOT OFFENSIVE</b></h3>
+
+{% elif taskA_pred == "OFF" and taskB_pred == "UNT"%}
+<h3> The tweet inputted is <b>OFFENSIVE</b> and it is <b>UNTARGETED</b> </h3>
+
+{% else %}
+{% if taskC_pred == "IND" %}
+<h3> The tweet inputted is <b>OFFENSIVE</b> and it is <b>TARGETED</b> to <b>INDIVIDUAL</b></h3>
+
+{% elif taskC_pred == "GRP" %}
+<h3> The tweet inputted is <b>OFFENSIVE</b> and it is <b>TARGETED</b> to <b>GROUP</b></h3>
+
+{% elif taskC_pred == "OTH" %}
+<h3> The tweet inputted is <b>OFFENSIVE</b> and it is <b>TARGETED</b> to <b>OTHER</b></h3>
+
+{% endif %}
+
+
+{% endif %}
+
+
+
+
+
+
+
+<p> To see an more information about the classification read the tables</p>
+<p> Scroll to the bottom of the page or visit <a href={{url_for('project_explained')}}>Project explained</a> to see what
+  the letters mean</p>
+
+
+
+<br>
+<h2> Tweet Cleaning:</h2>
+<table class="table table-striped">
+  <thead class="thead-dark">
+    <tr>
+      <th scope="col">Process Title</th>
+      <th scope="col">Tweet</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Original Tweet:</th>
+      <td>"{{ original_tweet }}"</td>
+    </tr>
+    <tr>
+      <th>Tweet Removed Stopwords:</th>
+      <td>"{{ stopwords_tweet }}"</td>
+    </tr>
+    <tr>
+      <th>Tweet Preprocessed:</th>
+      <td>"{{ preprocessed_tweet }}"</td>
+    </tr>
+    <tr>
+      <th>Lemmatised Tweet:</th>
+      <td>"{{ lemmatised_tweet }}"</td>
+    </tr>
+    <tr class="table-primary">
+      <th>Final Tweet to process:</th>
+      <td>"{{ lemmatised_tweet }}"</td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+<br> <br>
+<h2> Classification:</h2>
+<h5><b>Tweet to be Classified: </b><br> "{{ lemmatised_tweet }}"</h5>
+<br>
+
+<p> To see the confusion matrix, click on the model name to be redirected to the corresponding confusion matrix</p>
+<div class="table-responsive">
+  <table class="table table-striped ">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">Task</th>
+        <th scope="col">Prediction</th>
+        <th scope="col">Probability</th>
+        <th scope="col">Model Used</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        <th> Task A </th>
+        <td> {{ taskA_pred }} </td>
+        <td> {{ '%0.0f'| format(taskA_prob * 100) }}%</td>
+        <td> <a href="project_explained#accordion1"> {{ taskA_model }} </a> </td>
+      </tr>
+      <tr>
+
+
+        <th> Task B </th>
+        {% if taskA_pred == 'OFF' %}
+        <td> {{ taskB_pred }} </td>
+        <td> {{ '%0.0f'| format(taskB_prob * 100) }}% </td>
+        <td> <a href="project_explained#accordion2"> {{ taskB_model }} </a> </td>
+        {% else %}
+        <td> N/A</td>
+        <td> N/A </td>
+        <td> N/A </td>
+        {% endif %}
+      </tr>
+
+
+      <tr>
+        <th> Task C </th>
+        {% if taskA_pred == 'OFF' and taskB_pred == 'TIN' %}
+        <td> {{ taskC_pred }} </td>
+        <td> {{ '%0.0f'| format(taskC_prob * 100) }}% </td>
+        <td> <a href="project_explained#accordion3"> {{ taskC_model }} </a> </td>
+        {% else %}
+        <td> N/A</td>
+        <td> N/A </td>
+        <td> N/A </td>
+        {% endif %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<br>
+<h4><b>Key:</b> <br></h4>
+<p>
+  <b> OFF </b> = Offensive <br>
+  <b> NOT </b> = Not Offensive <br>
+</p>
+
+<p>
+  <b> TIN </b> = Targeted Insult <br>
+  <b> UNT </b> = Untargeted Insult <br>
+</p>
+
+<p>
+  <b> IND </b> = Individual <br>
+  <b> GRP </b> = Group <br>
+  <b> OTH </b> = Other <br>
+</p>
+
+
+{% endblock %}
