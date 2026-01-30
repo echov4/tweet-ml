@@ -60,12 +60,11 @@ The dataset used to train the ML models, was downloaded from [joeykay9's Github]
 
 ## Installation
 Need to have the following installed:
-* Python 3
+* Python 3.12
 * pip
-* python3-venv
 
 To initialize the project:
-1. Make a virtual environment `python3 -m venv venv`
+1. Make a virtual environment `python3.12 -m venv venv`
 2. Activate the virtual environment `source venv/bin/activate`
 3. Download the libraries required `pip install -r requirements.txt` in the directory where "requirements.txt" is stored. Usually under `application/`
 
